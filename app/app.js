@@ -57,13 +57,14 @@ function drawBody(body, note) {
     const match = CHECK.exec(line);
     if (!match) {
       const row = document.createElement('div');
-      row.className = 'line'; row.textContent = line;
+      row.className = 'line'; row.textContent = line; row.dataset.line = String(at);
       body.append(row);
       return;
     }
-    const row = document.createElement('label');
+    // A div, not a label: only the box ticks the item, and a click on its words opens the note.
+    const row = document.createElement('div');
     const done = match[2] !== ' ';
-    row.className = 'line check' + (done ? ' done' : '');
+    row.className = 'line check' + (done ? ' done' : ''); row.dataset.line = String(at);
     const box = document.createElement('input');
     box.type = 'checkbox'; box.checked = done; box.dataset.line = String(at);
     box.setAttribute('aria-label', match[3] || 'Checklist item');
@@ -242,7 +243,6 @@ grid.addEventListener('click', async (event) => {
     if (match) { lines[at] = `${match[1]}[${event.target.checked ? 'x' : ' '}] ${match[3]}`; note.text = lines.join('\n'); render(); queueSave(id, 0); }
     return;
   }
-  if (event.target.closest('.check')) return;
   const swatch = event.target.closest('.swatch');
   if (swatch) { note.color = swatch.dataset.color; render(); queueSave(id, 0); return; }
   if (event.target.closest('.pin')) { note.pinned = !note.pinned; render(); await saveNow(id); return; }
@@ -265,7 +265,13 @@ grid.addEventListener('click', async (event) => {
     else { render(); edit(id); }
     return;
   }
-  if (event.target.closest('.note-body')) edit(id);
+  if (event.target.closest('.note-body')) {
+    // The caret goes to the end of the line that was clicked, or the end of the note.
+    const line = event.target.closest('.line[data-line]');
+    if (!line) return edit(id);
+    const lines = note.text.split('\n'), at = Number(line.dataset.line);
+    edit(id, { caret: lines.slice(0, at + 1).join('\n').length });
+  }
 });
 grid.addEventListener('keydown', (event) => {
   const body = event.target.closest('.note-body');
