@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sticky Notes</title>
+  <link rel="stylesheet" href="app.css">
+  <script src="cloudwindow-app.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <h1>Sticky Notes <span id="count"></span></h1>
+    <input id="search" type="search" placeholder="Search" aria-label="Search notes" autocomplete="off" spellcheck="false">
+    <button id="new" class="primary" type="button" title="New Note (Option+Shift+N)">New Note</button>
+  </header>
+  <main id="notes" aria-live="polite"></main>
+  <section id="empty" class="empty" hidden>
+    <p class="empty-title">No Notes Yet</p>
+    <p class="empty-help">Press Option+Shift+N anywhere on your computer to start one.</p>
+    <button id="empty-new" class="primary" type="button">New Note</button>
+  </section>
+  <p id="no-match" class="empty-help no-match" hidden>No notes match your search.</p>
+  <div id="toast" role="status" hidden><span id="toast-text"></span><button id="toast-undo" type="button">Undo</button></div>
+  <p id="problem" class="problem" role="alert" hidden></p>
+</body>
+</html>

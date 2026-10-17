@@ -1,0 +1,33 @@
+{
+  "$schema": "https://getcloudwindow.com/plugins/manifest.schema.json",
+  "schemaVersion": 1,
+  "id": "cloudwindow.sticky-notes",
+  "name": "Sticky Notes",
+  "version": "1.0.0",
+  "summary": "Quick notes in the menu bar, and a window to write and sort them.",
+  "description": "Press Option+Shift+N to start a note from anywhere. Your newest notes are a click away in the menu bar, and the Sticky Notes window holds all of them: colours, pinning, search and checklists. Notes are kept on your computer, so they are there on every device you open it from.",
+  "publisher": {
+    "name": "Cloud Window",
+    "url": "https://getcloudwindow.com"
+  },
+  "repository": "https://github.com/getcloudwindow/sticky-notes",
+  "homepage": "https://getcloudwindow.com/plugins#cloudwindow.sticky-notes",
+  "license": "MIT",
+  "categories": ["productivity"],
+  "icon": "icon.svg",
+  "grants": ["extend:write", "desktop:act"],
+  "provider": { "entry": "provider.mjs" },
+  "app": { "folder": "app", "name": "Sticky Notes" },
+  "settings": [
+    { "key": "showCount", "type": "boolean", "label": "Show the number of notes in the menu bar", "default": true }
+  ],
+  "contributes": {
+    "actions": [
+      { "id": "new-note", "label": "New Sticky Note", "detail": "Starts a note in Sticky Notes", "keywords": ["note", "sticky", "jot", "memo"], "action": { "tool": "plugin_signal", "args": { "name": "new" } } },
+      { "id": "show-notes", "label": "Show Sticky Notes", "detail": "Opens the Sticky Notes window", "keywords": ["notes", "sticky"], "action": { "tool": "plugin_signal", "args": { "name": "show" } } }
+    ],
+    "bindings": [
+      { "id": "new-note", "chord": "Alt+Shift+n", "action": "new-note" }
+    ]
+  }
+}
