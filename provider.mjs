@@ -20,7 +20,13 @@ let notes = [];
 try {
   const saved = JSON.parse(readFileSync(file, 'utf8'));
   if (Array.isArray(saved.notes)) notes = saved.notes.map(clean).filter(Boolean);
-} catch {}
+} catch (error) {
+  // A file that is there but cannot be read is kept aside, never overwritten by the next save.
+  if (error.code !== 'ENOENT') {
+    const aside = `${file}.unreadable-${Date.now()}`;
+    try { renameSync(file, aside); cw.error(`notes.json could not be read and was kept as ${aside}.`); } catch {}
+  }
+}
 
 function clean(input) {
   if (!input || typeof input !== 'object') return null;

@@ -160,8 +160,9 @@ function edit(id, { caret = 'end' } = {}) {
   area.focus();
   const at = caret === 'end' ? area.value.length : caret;
   area.setSelectionRange(at, at);
-  area.addEventListener('input', () => { note.text = area.value; grow(area); queueSave(id); });
-  area.addEventListener('keydown', (event) => onKey(event, area, note));
+  // Through noteOf, never the note this started with: every save and every sync replaces it.
+  area.addEventListener('input', () => { const current = noteOf(id); if (!current) return; current.text = area.value; grow(area); queueSave(id); });
+  area.addEventListener('keydown', (event) => onKey(event, area, id));
   area.addEventListener('blur', () => { if (editing === id) finish(id); });
 }
 async function finish(id) {
@@ -175,12 +176,17 @@ async function finish(id) {
   }
   if (!note) return render();
   // A note left empty was never really written: it goes, rather than piling up blank cards.
-  if (!note.text.trim()) { clearTimeout(timers.get(id)); timers.delete(id); notes = notes.filter(other => other.id !== id); render(); await ask({ op: 'delete', id }).catch(() => {}); return; }
+  if (!note.text.trim()) {
+    clearTimeout(timers.get(id)); timers.delete(id); notes = notes.filter(other => other.id !== id); render();
+    const answer = await ask({ op: 'delete', id }).catch(() => null);
+    offerUndo(answer?.deleted);
+    return;
+  }
   render();
   if (timers.has(id)) await saveNow(id);
 }
 /* Enter on a checklist item starts the next one; Enter on an empty item ends the list. */
-function onKey(event, area, note) {
+function onKey(event, area, id) {
   if (event.key === 'Escape' || (event.key === 'Enter' && (event.metaKey || event.ctrlKey))) { event.preventDefault(); area.blur(); return; }
   if (event.key !== 'Enter' || event.shiftKey || event.altKey) return;
   const { selectionStart: start, selectionEnd: end, value } = area;
@@ -195,7 +201,9 @@ function onKey(event, area, note) {
   } else {
     area.setRangeText(`\n${match[1]}[ ] `, start, end, 'end');
   }
-  note.text = area.value; grow(area); queueSave(note.id);
+  const current = noteOf(id);
+  if (current) current.text = area.value;
+  grow(area); queueSave(id);
 }
 
 /* A new note is drawn and ready for typing at once; it reaches the program with the first
@@ -228,6 +236,10 @@ function toast(text, action) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { $('toast').hidden = true; undo = null; }, 6000);
 }
+function offerUndo(gone) {
+  if (!gone || !gone.text.trim()) return;
+  toast('Note deleted.', async () => { const back = await ask({ op: 'restore', note: gone }).catch(() => null); if (back?.note && !noteOf(back.note.id)) { notes.push(back.note); await refresh(); } });
+}
 $('toast-undo').addEventListener('click', async () => { const action = undo; undo = null; $('toast').hidden = true; if (action) await action(); });
 
 /* ---- events on the cards ---- */
@@ -248,13 +260,10 @@ grid.addEventListener('click', async (event) => {
   if (event.target.closest('.pin')) { note.pinned = !note.pinned; render(); await saveNow(id); return; }
   if (event.target.closest('.delete')) {
     if (editing === id) { editing = null; }
-    clearTimeout(timers.get(id)); timers.delete(id);
+    if (timers.has(id)) await saveNow(id);
     notes = notes.filter(other => other.id !== id); render();
     const answer = await ask({ op: 'delete', id }).catch(() => null);
-    if (answer?.deleted && answer.deleted.text.trim()) {
-      const gone = answer.deleted;
-      toast('Note deleted.', async () => { const back = await ask({ op: 'restore', note: gone }).catch(() => null); if (back?.note && !noteOf(back.note.id)) { notes.push(back.note); await refresh(); } });
-    }
+    offerUndo(answer?.deleted);
     return;
   }
   if (event.target.closest('.add-item')) {
